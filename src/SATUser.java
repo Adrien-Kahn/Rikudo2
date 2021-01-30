@@ -11,9 +11,8 @@ public class SATUser {
 		ISolver solver = SolverFactory.newDefault();
 		// Feed the solver using arrays of int in Dimacs format
 		try {
-			solver.addClause(new VecInt(new int[] {1, 2}));
-			solver.addClause(new VecInt(new int[] {-1, -2}));
 			solver.addClause(new VecInt(new int[] {1}));
+			solver.addClause(new VecInt(new int[] {-1}));
 		} catch (ContradictionException e1) {
 			e1.printStackTrace();
 		}

@@ -93,11 +93,14 @@ public class Graph {
 			solver.addClause(new VecInt(new int[] {n - 1 + n*t + 1}));
 			
 		} catch (ContradictionException e1) {
-			e1.printStackTrace();
+			System.out.println("Unsatisfiable problem!");
+			return new int[] {-1};
 		}
 		
+		/*
 		System.out.println("Number of variables: " + solver.nVars());
 		System.out.println("Number of constraints: " + solver.nConstraints());
+		*/
 		
 		try {
 			if (solver.isSatisfiable()) {
@@ -187,11 +190,14 @@ public class Graph {
 
 			
 		} catch (ContradictionException e1) {
-			e1.printStackTrace();
+			System.out.println("Unsatisfiable problem!");
+			return new int[] {-1};
 		}
 		
+		/*
 		System.out.println("Number of variables: " + solver.nVars());
 		System.out.println("Number of constraints: " + solver.nConstraints());
+		*/
 		
 		try {
 			if (solver.isSatisfiable()) {

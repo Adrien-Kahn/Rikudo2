@@ -87,22 +87,31 @@ public class Rikudo {
 			for (int u = 0; u < n; u ++) {
 				for (int v : diamonds.get(u)) {
 					if (v > u) {
+						
+						// Case i = 0 and i = n - 1 need to be treated independantly because here there might not be such a v1 or v2 do go with
+						
+						// Case i = 0
+						for (int v2 = 0; v2 < n; v2 ++) {
+							if (v2 != v && graph.neighbors(u).contains(v2)) {
+								solver.addClause(new VecInt(new int[] {- (0 + n*u + 1), - (1 + n*v2 + 1)}));
+							}
+						}
+						
+						// Case i = n - 1
+						for (int v1 = 0; v1 < n; v1 ++) {
+							if (v1 != v && graph.neighbors(v1).contains(u)) {
+								solver.addClause(new VecInt(new int[] {- (n - 2 + n*v1 + 1), - (n - 1 + n*u + 1)}));
+							}
+						}
+						
+						// Case 0 < i < n - 1
 						for (int v1 = 0; v1 < n; v1 ++) {
 							if (v1 != v && graph.neighbors(v1).contains(u)) {
 								for (int v2 = 0; v2 < n; v2 ++) {
 									if (v2 != v1 && v2 != v && graph.neighbors(u).contains(v2)) {
-										
-										// Case i = 0
-										solver.addClause(new VecInt(new int[] {- (0 + n*u + 1), - (1 + n*v2 + 1)}));
-										
-										// Case i = n - 1
-										solver.addClause(new VecInt(new int[] {- (n - 2 + n*v1 + 1), - (n - 1 + n*u + 1)}));
-										
-										// Case 0 < i < n - 1
 										for (int i = 1; i < n - 1; i ++) {
 											solver.addClause(new VecInt(new int[] {- (i - 1 + n*v1 + 1), - (i + n*u + 1), - (i + 1 + n*v2 + 1)}));
 										}
-										
 									}
 								}
 							}
@@ -112,11 +121,14 @@ public class Rikudo {
 			}
 			
 		} catch (ContradictionException e1) {
-			e1.printStackTrace();
+			System.out.println("Unsatisfiable problem!");
+			return new int[] {-1};
 		}
 		
+		/*
 		System.out.println("Number of variables: " + solver.nVars());
 		System.out.println("Number of constraints: " + solver.nConstraints());
+		*/
 		
 		try {
 			if (solver.isSatisfiable()) {
@@ -151,15 +163,14 @@ public class Rikudo {
 	public static void main(String[] args) {
 		
 		Graph g = Graph.gridGraph(3);
-		int[] pm = new int[] {0, -1, -1, -1, -1, -1, -1, -1, 8};
+		int[] pm = new int[] {0, 1, -1, -1, -1, -1, -1, -1, 8};
 		
 		ArrayList<ArrayList<Integer>> d = new ArrayList<ArrayList<Integer>>();
 		
-		for (int k = 0; k < 3; k ++) {d.add(new ArrayList<Integer>());};
-		d.add(new ArrayList<Integer>(Arrays.asList(6)));
-		for (int k = 0; k < 2; k ++) {d.add(new ArrayList<Integer>());};
 		d.add(new ArrayList<Integer>(Arrays.asList(3)));
 		for (int k = 0; k < 2; k ++) {d.add(new ArrayList<Integer>());};
+		d.add(new ArrayList<Integer>(Arrays.asList(0)));
+		for (int k = 0; k < 5; k ++) {d.add(new ArrayList<Integer>());};
 		
 		Rikudo riku = new Rikudo(g, d, pm);
 		
