@@ -6,6 +6,7 @@ import org.sat4j.minisat.SolverFactory;
 import org.sat4j.specs.ContradictionException;
 import org.sat4j.specs.ISolver;
 import org.sat4j.specs.TimeoutException;
+import org.sat4j.tools.SolutionCounter;
 
 public class Rikudo {
 	
@@ -20,7 +21,9 @@ public class Rikudo {
 	}
 	
 	
-	public int[] solveSAT() {
+	// Returns the ISolver object associated to the Rikudo object
+	
+	public ISolver solverBuilder() {
 		
 		int n = graph.vertexNumber();
 		ISolver solver = SolverFactory.newDefault();
@@ -119,25 +122,41 @@ public class Rikudo {
 					}
 				}
 			}
-			
+		
+		// in case we get the exception for a trivially unsatisfiable solver
+		// we create a new unsatisfiable solver to return that won't be detected as trivially unsatisfiable
 		} catch (ContradictionException e1) {
-			System.out.println("Unsatisfiable problem!");
-			return new int[] {-1};
+			System.out.println("Trivially Unsatisfiable");
+			
+			ISolver fakeSolver = SolverFactory.newDefault();
+			try {
+				fakeSolver.addClause(new VecInt(new int[] {1, 2}));
+				fakeSolver.addClause(new VecInt(new int[] {-1, -2}));
+				fakeSolver.addClause(new VecInt(new int[] {-1, 2}));
+				fakeSolver.addClause(new VecInt(new int[] {1, -2}));
+			} catch (ContradictionException e2) {
+				System.out.println("THIS IS NOT SUPPOSED TO HAPPEN ! IF IT DOES, CALL FOR HELP !");
+			}
+			return fakeSolver;
 		}
 		
-		/*
-		System.out.println("Number of variables: " + solver.nVars());
-		System.out.println("Number of constraints: " + solver.nConstraints());
-		*/
+		return solver;
+		
+	}
+	
+	
+	public int[] solveSAT() {
+		
+		ISolver solver = solverBuilder();
+		int n = graph.vertexNumber();
 		
 		try {
+			
 			if (solver.isSatisfiable()) {
 				
-				System.out.println("Hamiltonian Path Found");
-				
+				System.out.println("Solution Found");
 				int[] solution = solver.model();				
 				int[] path = new int[n];
-
 				for (int k = 0; k < n*n; k ++) {
 					if (solution[k] > 0) {
 						path[(solution[k] - 1) % n] = (solution[k] - 1) / n;
@@ -148,7 +167,7 @@ public class Rikudo {
 				return path;
 				
 			} else {
-				System.out.println("Unsatisfiable problem!");
+				System.out.println("There is no solution");
 				return new int[] {-1};
 			}
 			
@@ -160,10 +179,91 @@ public class Rikudo {
 	}
 	
 	
+	public long numberOfSolution() {
+		ISolver solver = solverBuilder();
+		try {
+			if (solver.isSatisfiable()) {
+				SolutionCounter sc = new SolutionCounter(solver);
+				return sc.countSolutions();	
+			} else {
+				return 0;
+			}
+		} catch (TimeoutException e) {
+			System.out.println("Timeout, sorry!");
+			return 0;
+		}
+	}
+	
+	
+	
+	public void isGood() {
+		
+		ISolver solver = solverBuilder();
+		int n = graph.vertexNumber();
+		
+		try {
+			
+			if (solver.isSatisfiable()) {
+				
+				// Providing the number of solution
+				SolutionCounter sc = new SolutionCounter(solver);
+				long nbSol = sc.countSolutions();
+				System.out.println("Number of Solutions: " + nbSol);
+				
+				// If there is only one solution, we check that removing constraints always leads to more solutions (we check minimality)
+				if (nbSol == 1) {
+					
+					// Removing constraints on the partial mapping
+					// We iterate for 0 < k < n - 1 since we can't remove the constraints on the starting and finishing points 
+					for (int k = 1; k < n - 1; k ++) {
+						if (partialMap[k] != -1) {
+							int mem = partialMap[k];
+							partialMap[k] = -1;
+							if (numberOfSolution() == 1) {
+								System.out.println("The problem is not minimal: removing condition " + k + " on the partial mapping still yields only one solution");
+								partialMap[k] = mem;
+								return;
+							}
+							partialMap[k] = mem;
+						}
+					}
+					
+					// Removing constraints on diamonds
+					for (int u = 0; u < n; u ++) {
+						for (int v : diamonds.get(u)) {
+							if (v > u) {
+								diamonds.get(u).remove(new Integer(v));
+								if (numberOfSolution() == 1) {
+									System.out.println("The problem is not minimal: removing the diamond (" + u + ", " + v + ") still yields only one solution");
+									diamonds.get(u).add(v);
+									return;
+								}
+								diamonds.get(u).add(v);
+							}
+						}
+					}
+					
+					System.out.println("The Problem is minimal");
+					
+					
+				}
+				
+			} else {
+				System.out.println("Number of Solutions: 0");
+			}
+			
+		} catch (TimeoutException e) {
+			System.out.println("Timeout, sorry!");
+		}
+		
+	}
+	
+	
+	
 	public static void main(String[] args) {
 		
 		Graph g = Graph.gridGraph(3);
-		int[] pm = new int[] {0, 1, -1, -1, -1, -1, -1, -1, 8};
+		int[] pm = new int[] {0, 3, -1, -1, -1, -1, -1, -1, 8};
 		
 		ArrayList<ArrayList<Integer>> d = new ArrayList<ArrayList<Integer>>();
 		
@@ -174,12 +274,16 @@ public class Rikudo {
 		
 		Rikudo riku = new Rikudo(g, d, pm);
 		
-		
-		for (int k = 0; k < pm.length; k ++) {System.out.print(pm[k]);};
+		System.out.print("Partial Mapping: ");
+		System.out.println(Arrays.toString(pm));
+		System.out.print("Diamonds: ");
 		System.out.println(d);
-		
+		System.out.println();
 		
 		riku.solveSAT();
+		System.out.println();
+
+		riku.isGood();
 		
 	}
 	
