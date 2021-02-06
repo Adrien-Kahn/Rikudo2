@@ -21,6 +21,8 @@ public class Rikudo {
 	}
 	
 	
+	//Task 3 : SAT Solving
+	
 	// Returns the ISolver object associated to the Rikudo object
 	
 	public ISolver solverBuilder() {
@@ -144,6 +146,8 @@ public class Rikudo {
 		
 	}
 	
+			
+	
 	
 	public int[] solveSAT() {
 		
@@ -178,6 +182,121 @@ public class Rikudo {
 		
 	}
 	
+	
+	//Task 3 : exploring
+	
+	private void exploring(int s, int t, int[] explored, ArrayList<Integer> path, int n) {
+		// we begin to see if there are any constraints that need to be fulfilled during the iteration
+		
+		ArrayList<Integer> neigh = graph.neighbors(s);
+		int i = path.size();
+		
+		if (i == n-1) {					// t must be the end of the path : for the rest of the algorithm we can assume that we haven't reached the end of the path
+			if (neigh.contains(t)){
+				explored[t] = 1;
+				path.add(t);
+			}
+			return;
+		}
+		
+		if (partialMap[i] != -1) { 			// we verify whether the lambda constraint can be fulfilled and continue exploring if so
+			int v = partialMap[i];
+			if (neigh.contains(v)) {
+				explored[v] = 1;
+				path.add(v);
+				exploring(v,t,explored,path,n);
+				if (path.size() != n) {
+					explored[v] = 0;
+					path.remove(path.size()-1);	
+				}
+			}
+			return;
+		}
+		
+		
+		ArrayList<Integer> d = diamonds.get(s);  // a vertex can appear at most twice in the set of diamonds, or the problem is unsolvable
+		
+		if (d.size() == 2) {				// if the vertex is part of two diamonds, then we know that its predecessor and successor are one of two values
+			int v1 = d.get(0);
+			int v2 = d.get(1);
+			if (v1 == t || v2 == t) return; 				// impossible to fulfill because it means t needs to be a predecessor or a successor of the vertex and we haven't reached the end yet
+			if (explored[v1] == 0 && explored[v2] == 1) {
+				explored[v1] = 1;
+				path.add(v1);
+				exploring(v1,t,explored,path,n);
+				if (path.size() != n) {
+					explored[v1] = 0;
+					path.remove(path.size()-1);	
+				}
+			}
+			if (explored[v2] == 0 && explored[v1] == 1) {
+				explored[v2] = 1;
+				path.add(v2);
+				exploring(v2,t,explored,path,n);	
+				if (path.size() != n) {
+					explored[v2] = 0;
+					path.remove(path.size()-1);	
+				}
+			}
+			return;
+		}
+		
+		
+		if (d.size() == 1) { 					// if we don't come from the other vertex of the diamond, then we necessarily need to go there
+			int v1 = d.get(0);
+			if (v1 == t) return;					// unsatisfiable because t is either a predecessor or a successor and we haven't reached the end yet
+			if (explored[v1] == 1 && path.get(i-1) != v1) {
+				return;
+			}
+			if (explored[v1] == 0) {
+				explored[v1] = 1;
+				path.add(v1);
+				exploring(v1,t,explored,path,n);
+				if (path.size() != n) {
+					explored[v1] = 0;
+					path.remove(path.size()-1);	
+				}
+				return;
+			}
+		}
+	
+		// if none of the constraints condition our exploration, we use the general exploring method by looking at each of the unexplored neighbors
+		
+		
+		for (int v : neigh) {
+			
+			if (v != t && explored[v] == 0) {		// we haven't reached the end yet : we can't choose target to explore																
+				explored[v] = 1;
+				path.add(v);
+				exploring(v,t,explored,path,n);
+				if (path.size() == n) break; // determines whether the path + v can be completed into an hamiltonian path
+				explored[v] = 0; 
+				path.remove(path.size()-1);
+			}
+			
+		}
+	}
+	
+	public ArrayList<Integer> solveBacktracking(int s, int t){
+		
+		// initialization
+		int n = graph.vertexNumber();
+		int[] explored = new int[n+1];
+		explored[s] = 1;
+		ArrayList<Integer> path = new ArrayList<Integer>();
+		path.add(s);
+		
+		// exploring the graph with the auxiliary method
+		exploring(s,t, explored, path, n);
+		
+		//result
+		if (path.size() == n) {System.out.println("Congrats you have found a solution"); System.out.println(path.toString());return path;}
+		System.out.println("No solution here sir"); return new ArrayList<Integer>();
+	}
+
+	
+	
+	//Task 4
 	
 	public long numberOfSolution() {
 		ISolver solver = solverBuilder();
@@ -260,6 +379,9 @@ public class Rikudo {
 	
 	
 	
+	
+	
+	
 	public static void main(String[] args) {
 		
 		Graph g = Graph.gridGraph(3);
@@ -285,6 +407,30 @@ public class Rikudo {
 
 		riku.isGood();
 		
+		Graph gg2 = Graph.gridGraph(3);
+		
+		ArrayList<ArrayList<Integer>> E = new ArrayList<ArrayList<Integer>>();
+		ArrayList<Integer> diamond1 = new ArrayList<Integer>();
+		ArrayList<Integer> diamond2 = new ArrayList<Integer>();
+		diamond1.add(8);
+		diamond2.add(5);
+
+		for (int i = 0; i<5 ; i++) {E.add(new ArrayList<Integer>());}
+
+		E.add(diamond1);
+		E.add(new ArrayList<Integer>());
+		E.add(new ArrayList<Integer>());
+		E.add(diamond2);
+		
+		
+		int[] lambda = new int[9];
+		for (int i = 0; i < 9; i++) {lambda[i] = -1; }
+		lambda[3] = 7;
+		
+		Rikudo riku2 = new Rikudo(gg2, E, lambda);
+		
+		riku2.solveBacktracking(0, 8);
+		
 	}
-	
+
 }
