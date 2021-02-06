@@ -274,6 +274,27 @@ public class BinaryImage {
 		drawLine(x + 4*w/5, y + h/2, x + 4*w/5, y + h, w/8);
 	}
 	
+	public void draw7(int x, int y, int w, int h) {
+		drawLine(x + w/5, y, x + 4*w/5, y, w/8);
+		drawLine(x + 4*w/5, y, x + 4*w/5, y + h, w/8);
+	}
+	
+	public void draw8(int x, int y, int w, int h) {
+		drawLine(x + w/5, y, x + 4*w/5, y, w/8);
+		drawLine(x + w/5, y + h, x + 4*w/5, y + h, w/8);
+		drawLine(x + w/5, y + h/2, x + 4*w/5, y + h/2, w/8);
+		drawLine(x + 4*w/5, y, x + 4*w/5, y + h, w/8);
+		drawLine(x + w/5, y, x + w/5, y + h, w/8);
+	}
+	
+	public void draw9(int x, int y, int w, int h) {
+		drawLine(x + w/5, y, x + 4*w/5, y, w/8);
+		drawLine(x + w/5, y + h, x + 4*w/5, y + h, w/8);
+		drawLine(x + w/5, y + h/2, x + 4*w/5, y + h/2, w/8);
+		drawLine(x + w/5, y, x + w/5, y + h/2, w/8);
+		drawLine(x + 4*w/5, y, x + 4*w/5, y + h, w/8);
+	}
+	
 	
 	// The general method to draw a digit
 	public void drawD(int d, int x, int y, int w, int h) {
@@ -287,8 +308,26 @@ public class BinaryImage {
 		case 2:
 			draw2(x, y, w, h);
 			break;
+		case 3:
+			draw3(x, y, w, h);
+			break;
+		case 4:
+			draw4(x, y, w, h);
+			break;
 		case 5:
 			draw5(x, y, w, h);
+			break;
+		case 6:
+			draw6(x, y, w, h);
+			break;
+		case 7:
+			draw7(x, y, w, h);
+			break;
+		case 8:
+			draw8(x, y, w, h);
+			break;
+		case 9:
+			draw9(x, y, w, h);
 			break;
 		}
 	}
@@ -320,9 +359,9 @@ public class BinaryImage {
 		
 		im.drawHexagon(400, 400, 200, 10);
 		im.drawDiamond(400, 230, 30, 30);
-		im.draw6(350, 330, 100, 140);
+		//im.draw9(350, 330, 100, 140);
 		
-		//im.drawInt(25, 400, 400, 200, 200);
+		im.drawInt(1234567890, 400, 400, 200, 200);
 		
 		new ImageViewer(im, "Test");
 		
