@@ -490,13 +490,12 @@ public class Graph {
 		// Evaluate computation time
 		
 		
-		/*
 		System.out.println("Start");
 				
 		ArrayList<Integer> x = new ArrayList<Integer>();
 		ArrayList<Double> y = new ArrayList<Double>();
 		
-		for (int k = 1; k < 8; k ++) {
+		for (int k = 1; k < 9; k ++) {
 			
 			x.add(k*k);
 			
@@ -504,19 +503,20 @@ public class Graph {
 			long t = System.currentTimeMillis();
 			cg.hamiltonianPath(1, 0);
 			y.add((System.currentTimeMillis() - t)/1000.);
+			System.out.println(k);
+			System.out.println();
 			
 		}
 				
 		System.out.println(x);
 		System.out.println(y);
-		*/
 		
-		
+		/*
 		Graph cg = gridGraph(7);
 		long t = System.currentTimeMillis();
 		cg.hamiltonianPath(1, 0);
 		System.out.println((System.currentTimeMillis() - t)/1000.);
-		
+		*/
 		
 		
 

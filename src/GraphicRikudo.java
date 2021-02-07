@@ -116,9 +116,11 @@ public class GraphicRikudo {
 		*/
 		
 		BinaryImage imX = new BinaryImage("X.png");
-		GraphicRikudo rikuX = new GraphicRikudo(imX, 120, 80, 30, 1000);
+		GraphicRikudo rikuX = new GraphicRikudo(imX, 40, 40, 30, 1000);
 				
 		rikuX.showRikudo();
+		
+		new ImageViewer(imX);
 		
 	}
 

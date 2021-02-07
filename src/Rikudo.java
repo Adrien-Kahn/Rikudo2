@@ -26,7 +26,6 @@ public class Rikudo {
 	//Task 3 : SAT Solving
 	
 	// Returns the ISolver object associated to the Rikudo object
-	
 	public ISolver solverBuilder() {
 		
 		int n = graph.vertexNumber();
@@ -107,7 +106,7 @@ public class Rikudo {
 		
 	}
 	
-	
+	//The old version
 	public ISolver solverBuilderOld() {
 		
 		int n = graph.vertexNumber();
@@ -483,7 +482,8 @@ public class Rikudo {
 	
 	
 	public static Rikudo createRikudoPath (Graph g, ArrayList<Integer> path) {
-		// Definition of the variables
+		
+		// Initialization of the constraints
 		int n = g.vertexNumber();
 		int[] lambda = new int[n];
 		ArrayList<ArrayList<Integer>> diamonds = new ArrayList<ArrayList<Integer>>();
@@ -497,7 +497,7 @@ public class Rikudo {
 		
 		// Putting constraints until our path is the unique solution
 		Random r = new Random();
-		
+				
 		long nbSol = riku.numberOfSolution();
 
 		while (nbSol != 1) {
@@ -549,7 +549,7 @@ public class Rikudo {
 	
 	public static void main(String[] args) {
 		
-		
+		/*
 		Graph g = Graph.gridGraph(3);
 		int[] pm = new int[] {0, -1, -1, -1, -1, -1, -1, -1, 8};
 		
@@ -569,6 +569,7 @@ public class Rikudo {
 		
 		riku.solveSAT();
 		System.out.println();
+		*/
 
 		/*
 		riku.isGood();
@@ -609,7 +610,22 @@ public class Rikudo {
 		System.out.println(riku.diamonds);
 		*/
 		
-
+		/*
+		System.out.println("start");
+		int n = 6;
+		Graph g = Graph.gridGraph(n);
+		int[] lambda = new int[n*n];
+		ArrayList<ArrayList<Integer>> diamonds = new ArrayList<ArrayList<Integer>>();
+		for (int i = 0; i < n*n; i++) {
+			lambda[i] = -1;
+			diamonds.add(new ArrayList<Integer>());	
+		}
+		lambda[0] = 0;
+		lambda[n*n - 1] = 1;
+		Rikudo riku = new Rikudo(g, diamonds, lambda);
+		
+		System.out.println(riku.numberOfSolution());
+		*/
 		
 	}
 
