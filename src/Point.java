@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 
 public class Point {
@@ -20,7 +21,7 @@ public class Point {
 		return Math.sqrt((p2.x - p1.x)*(p2.x - p1.x) + (p2.y - p1.y)*(p2.y - p1.y));
 	}
 	
-	// Returns whether p1 = p2 with caracteristic distance d (to account for calculation errors)
+	// Returns whether p1 = p2 with characteristic distance d (to account for calculation errors)
 	static boolean isEqual(Point p1, Point p2, double d) {
 		return (distance(p1, p2) < 0.1 * d);
 	}

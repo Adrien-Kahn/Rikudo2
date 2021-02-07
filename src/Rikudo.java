@@ -12,9 +12,9 @@ import org.sat4j.tools.SolutionCounter;
 
 public class Rikudo {
 	
-	private Graph graph;
-	private ArrayList<ArrayList<Integer>> diamonds;
-	private int[] partialMap;
+	public Graph graph;
+	public ArrayList<ArrayList<Integer>> diamonds;
+	public int[] partialMap;
 	
 	Rikudo(Graph g, ArrayList<ArrayList<Integer>> d, int[] pm) {
 		graph = g;
@@ -28,6 +28,87 @@ public class Rikudo {
 	// Returns the ISolver object associated to the Rikudo object
 	
 	public ISolver solverBuilder() {
+		
+		int n = graph.vertexNumber();
+		ISolver solver = SolverFactory.newDefault();
+		
+		try {
+			
+			// The partial mapping is respected
+			
+			for (int i = 0; i < n; i ++) {
+				if (partialMap[i] != -1) {
+					solver.addClause(new VecInt(new int[] {i + n*partialMap[i] + 1}));
+				}
+			}
+			
+			// Each vertex appears exactly once in the path
+			for (int v = 0; v < n; v ++) {
+				int[] a = new int[n];
+				for (int i = 0; i < n; i ++) {
+					a[i] = i + n*v + 1;
+				}
+				solver.addExactly(new VecInt(a), 1);
+			}
+			
+			// Each index appears exactly once in the path
+			for (int i = 0; i < n; i ++) {
+				int[] a = new int[n];
+				for (int v = 0; v < n; v ++) {
+					a[v] = i + n*v + 1;
+				}
+				solver.addExactly(new VecInt(a), 1);
+			}
+			
+			// Consecutive vertices in the path are adjacent in the graph
+			for (int i = 0; i < n - 1; i ++) {
+				for (int v = 0; v < n; v ++) {
+					for (int u = 0; u < n; u ++) {
+						if (!graph.neighbors(u).contains(v)) {
+							solver.addClause(new VecInt(new int[] {- (i + n*u + 1), - (i + 1 + n*v + 1)}));
+						}
+					}
+				}
+			}
+			
+			// All the diamonds have edges passing through them
+			for (int u = 0; u < n; u ++) {
+				for (int v : diamonds.get(u)) {
+					
+					// if x_u,i then {x_u,i - 1} or x_{u,i + 1}
+					for (int k = 1; k <= n - 2; k ++) {
+						solver.addClause(new VecInt(new int[] {- (k + n*u + 1), k - 1 + n*v + 1, k + 1 + n*v + 1}));
+					}
+					
+					solver.addClause(new VecInt(new int[] {- (0 + n*u + 1), 1 + n*v + 1}));
+					solver.addClause(new VecInt(new int[] {- (n - 1 + n*u + 1), n - 2 + n*v + 1}));
+					
+				}
+			}
+		
+		// in case we get the exception for a trivially unsatisfiable solver
+		// we create a new unsatisfiable solver to return that won't be detected as trivially unsatisfiable
+		} catch (ContradictionException e1) {
+			System.out.println("Trivially Unsatisfiable");
+			
+			ISolver fakeSolver = SolverFactory.newDefault();
+			try {
+				fakeSolver.addClause(new VecInt(new int[] {1, 2}));
+				fakeSolver.addClause(new VecInt(new int[] {-1, -2}));
+				fakeSolver.addClause(new VecInt(new int[] {-1, 2}));
+				fakeSolver.addClause(new VecInt(new int[] {1, -2}));
+			} catch (ContradictionException e2) {
+				System.out.println("THIS IS NOT SUPPOSED TO HAPPEN ! IF IT DOES, CALL FOR HELP !");
+			}
+			return fakeSolver;
+		}
+		
+		return solver;
+		
+	}
+	
+	
+	public ISolver solverBuilderOld() {
 		
 		int n = graph.vertexNumber();
 		ISolver solver = SolverFactory.newDefault();
@@ -324,7 +405,7 @@ public class Rikudo {
 		System.out.println("Number of Solutions: " + nbSol);
 			
 		if (nbSol == 1) {
-
+			
 					
 			// Removing constraints on the partial mapping
 			// We iterate for 0 < k < n - 1 since we can't remove the constraints on the starting and finishing points 
@@ -401,20 +482,17 @@ public class Rikudo {
 	}
 	
 	
-	public static Rikudo createRikudo (Graph g, int s, int t) {
+	public static Rikudo createRikudoPath (Graph g, ArrayList<Integer> path) {
 		// Definition of the variables
-		ArrayList<Integer> path = g.hamiltonianBacktracking(s, t);
 		int n = g.vertexNumber();
 		int[] lambda = new int[n];
-		lambda[0] = s;
-		lambda[n-1] = t;
 		ArrayList<ArrayList<Integer>> diamonds = new ArrayList<ArrayList<Integer>>();
 		for (int i = 0; i < n; i++) {
 			lambda[i] = -1;
 			diamonds.add(new ArrayList<Integer>());	
 		}
-		lambda[0] = s;
-		lambda[n-1] = t;
+		lambda[0] = path.get(0);
+		lambda[n-1] = path.get(n-1);
 		Rikudo riku = new Rikudo(g, diamonds, lambda);
 		
 		// Putting constraints until our path is the unique solution
@@ -423,6 +501,10 @@ public class Rikudo {
 		long nbSol = riku.numberOfSolution();
 
 		while (nbSol != 1) {
+			
+			System.out.println(nbSol);
+
+			
 			if (r.nextInt(2) == 0) {      // we add a lambda constraint
 				int i = r.nextInt(n);
 				if (riku.partialMap[i] == -1) {
@@ -455,6 +537,11 @@ public class Rikudo {
 		//
 	}
 	
+	public static Rikudo createRikudo (Graph g, int s, int t) {
+		// Definition of the variables
+		ArrayList<Integer> path = g.hamiltonianBacktracking(s, t);
+		return(createRikudoPath(g,path));
+	}
 	
 	
 	
@@ -462,16 +549,15 @@ public class Rikudo {
 	
 	public static void main(String[] args) {
 		
-		/*
+		
 		Graph g = Graph.gridGraph(3);
-		int[] pm = new int[] {0, 3, -1, -1, -1, -1, -1, -1, 8};
+		int[] pm = new int[] {0, -1, -1, -1, -1, -1, -1, -1, 8};
 		
 		ArrayList<ArrayList<Integer>> d = new ArrayList<ArrayList<Integer>>();
 		
-		d.add(new ArrayList<Integer>(Arrays.asList(3)));
-		for (int k = 0; k < 2; k ++) {d.add(new ArrayList<Integer>());};
+		d.add(new ArrayList<Integer>(Arrays.asList(1)));		
 		d.add(new ArrayList<Integer>(Arrays.asList(0)));
-		for (int k = 0; k < 5; k ++) {d.add(new ArrayList<Integer>());};
+		for (int k = 0; k < 7; k ++) {d.add(new ArrayList<Integer>());};
 		
 		Rikudo riku = new Rikudo(g, d, pm);
 		
@@ -484,6 +570,7 @@ public class Rikudo {
 		riku.solveSAT();
 		System.out.println();
 
+		/*
 		riku.isGood();
 		
 		Graph gg2 = Graph.gridGraph(3);
@@ -511,6 +598,7 @@ public class Rikudo {
 		riku2.solveBacktracking(0, 8);
 		*/
 		
+		/*
 		Graph gg2 = Graph.gridGraph(3);
 		
 		Rikudo riku = createRikudo(gg2, 0, 8);
@@ -519,7 +607,7 @@ public class Rikudo {
 		System.out.println(Arrays.toString(riku.partialMap));
 		System.out.print("Diamonds: ");
 		System.out.println(riku.diamonds);
-		
+		*/
 		
 
 		

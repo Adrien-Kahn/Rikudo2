@@ -1,3 +1,4 @@
+
 import java.awt.*;
 import java.awt.image.*;
 import java.util.ArrayList;
@@ -81,9 +82,9 @@ public class BinaryImage {
 		return (raster[x + width * y] & 0xFFFFFF) == 0;
 	}
 
-	// Test whether a pixel is black and within the image
-	public boolean isBlackGeneralized(int x, int y) {
-		if (x < 0 || x >= width || y < 0 || y >= height) {
+	// Test whether a pixel is black and within the image, at at distance at least d from the border
+	public boolean isBlackGeneralized(int x, int y, int d) {
+		if (x < d || x >= width - d || y < d || y >= height - d) {
 			return false;
 		}
 		return (raster[x + width * y] & 0xFFFFFF) == 0;
@@ -127,7 +128,7 @@ public class BinaryImage {
 	}
 	
 	
-	// Returns the Point corresponding to the ith edge on the hexagon at distance d
+	// Returns the Point corresponding to the center of the ith neighbor of the hexagon at distance d
 	static Point next(Point p, int i, double d) {
 		
 		double x = p.x;
@@ -152,9 +153,96 @@ public class BinaryImage {
 		}
 	}
 		
-	
-	
+		
 	// Returns an ordered ArrayList of points that represents a graph with a path that is in the black area
+	public ArrayList<Point> greatestPath(int xs, int ys, double d, int nbCalls) {
+		
+		// We create a list that contains a counter of the number of remaining calls to explorer
+		int[] counter = new int[] {nbCalls};
+		
+		Point currentPoint = new Point(xs, ys);
+		ArrayList<Point> coordinate = new ArrayList<Point>();
+		coordinate.add(currentPoint);
+		ArrayList<Point> bestCoordinate = new ArrayList<Point>();
+		bestCoordinate.add(currentPoint);
+		
+		explorer(currentPoint, coordinate, bestCoordinate, d, counter);
+		
+		return bestCoordinate;
+	}
+	
+	private void explorer(Point currentPoint, ArrayList<Point> coordinate, ArrayList<Point> bestCoordinate, double d, int[] counter) {
+				
+		counter[0] --;
+
+		// We don't run explorer if the counter lower than 0
+		if (counter[0] < 0) {
+			return;
+		}
+				
+		// Otherwise, for each edge of the hexagon, we examine whether we can add the corresponding vertex to our path
+		for (int i = 1; i <= 6; i ++) {
+			
+			Point nextPoint = next(currentPoint, i, d);
+			
+			// We check if we can add nextPoint to the path
+			if (isBlackGeneralized(nextPoint.xint(), nextPoint.yint(), (int) d) && !(Point.isInArray(nextPoint, coordinate, d))) {
+				
+				// We memorize coordinate for so when we try to explore to another point, we have the same previous path
+				// We create only a shallow copy, but since we never modify Point objects, it does not matter
+				ArrayList<Point> coor = new ArrayList<Point>(coordinate);
+				
+				// We add nextPoint to the path
+				coordinate.add(nextPoint);
+				
+				// If the path is the greatest so far, we memorize it
+				if (coordinate.size() > bestCoordinate.size()) {
+					// We empty bestCoordinate and then re-fill it so it remains the same object
+					bestCoordinate.clear();
+					bestCoordinate.addAll(coordinate);
+				}
+				
+				explorer(nextPoint, coordinate, bestCoordinate, d, counter);
+				
+				coordinate = coor;
+			}
+		}
+	}
+	
+	// The version of explorer with infinite number of calls
+	private void infiniteExplorer(Point currentPoint, ArrayList<Point> coordinate, ArrayList<Point> bestCoordinate, double d) {
+		
+		// For each edge of the hexagon, we examine whether we can add the corresponding vertex to our path
+		for (int i = 1; i <= 6; i ++) {
+			
+			Point nextPoint = next(currentPoint, i, d);
+			
+			// We check if we can add nextPoint to the path
+			if (isBlackGeneralized(nextPoint.xint(), nextPoint.yint(), (int) d) && !(Point.isInArray(nextPoint, coordinate, d))) {
+				
+				// We memorize coordinate for so when we try to explore to another point, we have the same previous path
+				// We create only a shallow copy, but since we never modify Point objects, it does not matter
+				ArrayList<Point> coor = new ArrayList<Point>(coordinate);
+				
+				// We add nextPoint to the path
+				coordinate.add(nextPoint);
+				
+				// If the path is the greatest so far, we memorize it
+				if (coordinate.size() > bestCoordinate.size()) {
+					// We empty bestCoordinate and then re-fill it so it remains the same object
+					bestCoordinate.clear();
+					bestCoordinate.addAll(coordinate);
+				}
+				
+				infiniteExplorer(nextPoint, coordinate, bestCoordinate, d);
+				
+				coordinate = coor;
+			}
+		}
+	}
+	
+	
+	// Overloading greatestPath in case we want to explore all the possibilities
 	public ArrayList<Point> greatestPath(int xs, int ys, double d) {
 		
 		Point currentPoint = new Point(xs, ys);
@@ -163,42 +251,10 @@ public class BinaryImage {
 		ArrayList<Point> bestCoordinate = new ArrayList<Point>();
 		bestCoordinate.add(currentPoint);
 		
-		explorer(currentPoint, coordinate, bestCoordinate, d);
+		infiniteExplorer(currentPoint, coordinate, bestCoordinate, d);
 		
 		return bestCoordinate;
 	}
-	
-	private void explorer(Point currentPoint, ArrayList<Point> coordinate, ArrayList<Point> bestCoordinate, double d) {
-
-		for (int i = 1; i <= 6; i ++) {
-			
-			Point nextPoint = next(currentPoint, i, d);
-			
-			if (isBlackGeneralized(nextPoint.xint(), nextPoint.yint()) && !(Point.isInArray(nextPoint, coordinate, d))) {
-				
-				// We create only a shallow copy, but since we never modify Point objects, it does not matter
-				ArrayList<Point> coor = new ArrayList<Point>(coordinate);
-				coordinate.add(nextPoint);
-				
-				if (coordinate.size() > bestCoordinate.size()) {
-					// We empty bestCoordinate and then re-fill it so it remains the same object
-					bestCoordinate.clear();
-					bestCoordinate.addAll(coordinate);
-					System.out.println(bestCoordinate);
-				}
-				
-				explorer(nextPoint, coordinate, bestCoordinate, d);
-				
-				coordinate = coor;
-			}
-		}
-	}
-	
-	
-	// Returns the CoordinateGraph corresponding to the input ArrayList<Point>
-	//public CoordinateGraph(ArrayList<Point> coordinates) {
-		
-	//}
 	
 	
 	// Draws a circle with center (a,b) and radius r
@@ -415,12 +471,19 @@ public class BinaryImage {
 		}
 	}
 	
+
+	
 	
 	// Draws the integer n in a rectangle centered in (x,y) with width w and height h
 	public void drawInt(int n, int x, int y, int w, int h) {
 		
+		int digitNumber;
+		
 		// comute the number of digits
-		int digitNumber = (int) Math.log10(n) + 1;
+		if (n >= 1) {
+			digitNumber = (int) Math.log10(n) + 1;
+		}
+		else {digitNumber = 1;}
 		
 		// Define the width of each digit
 		int digitWidth = w/digitNumber;
@@ -441,7 +504,7 @@ public class BinaryImage {
 		BinaryImage im = new BinaryImage(800);
 		im.fillAreaBlack(200, 200, 400);
 		
-		ArrayList<Point> al = im.greatestPath(400, 400, 200);
+		ArrayList<Point> al = im.greatestPath(400, 400, 100);
 		System.out.println();
 		System.out.println(al);
 		
@@ -456,7 +519,8 @@ public class BinaryImage {
 		
 		for (int k = 0; k < n; k ++) {
 			Point p = al.get(k);
-			im.drawHexagon(p.xint(), p.yint(), 105, 5);
+			im.drawHexagon(p.xint(), p.yint(), 53, 3);
+			im.drawInt(k, p.xint(), p.yint(), 53,53);
 		}
 		
 		//im.drawHexagon(400, 400, 200, 10);
