@@ -1,5 +1,7 @@
 import java.awt.*;
 import java.awt.image.*;
+import java.util.ArrayList;
+
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 
@@ -79,6 +81,14 @@ public class BinaryImage {
 		return (raster[x + width * y] & 0xFFFFFF) == 0;
 	}
 
+	// Test whether a pixel is black and within the image
+	public boolean isBlackGeneralized(int x, int y) {
+		if (x < 0 || x >= width || y < 0 || y >= height) {
+			return false;
+		}
+		return (raster[x + width * y] & 0xFFFFFF) == 0;
+	}
+	
 	// Blacken the pixel at position (x,y)
 	public void toBlack(int x, int y) {
 		this.setPixel(x, y, 0xFF000000);
@@ -116,6 +126,79 @@ public class BinaryImage {
 		return true;
 	}
 	
+	
+	// Returns the Point corresponding to the ith edge on the hexagon at distance d
+	static Point next(Point p, int i, double d) {
+		
+		double x = p.x;
+		double y = p.y;
+		
+		switch(i) {
+		case 1:
+			return new Point(x + ((Math.sqrt(3) * d)/2), y - (d/2));
+		case 2:
+			return new Point(x, y - d);
+		case 3:
+			return new Point(x - ((Math.sqrt(3) * d)/2), y - (d/2));
+		case 4:
+			return new Point(x - ((Math.sqrt(3) * d)/2), y + (d/2));
+		case 5:
+			return new Point(x, y + d);
+		case 6:
+			return new Point(x + ((Math.sqrt(3) * d)/2), y + (d/2));
+		default:
+			System.out.println("ERROR");
+			return p;
+		}
+	}
+		
+	
+	
+	// Returns an ordered ArrayList of points that represents a graph with a path that is in the black area
+	public ArrayList<Point> greatestPath(int xs, int ys, double d) {
+		
+		Point currentPoint = new Point(xs, ys);
+		ArrayList<Point> coordinate = new ArrayList<Point>();
+		coordinate.add(currentPoint);
+		ArrayList<Point> bestCoordinate = new ArrayList<Point>();
+		bestCoordinate.add(currentPoint);
+		
+		explorer(currentPoint, coordinate, bestCoordinate, d);
+		
+		return bestCoordinate;
+	}
+	
+	private void explorer(Point currentPoint, ArrayList<Point> coordinate, ArrayList<Point> bestCoordinate, double d) {
+
+		for (int i = 1; i <= 6; i ++) {
+			
+			Point nextPoint = next(currentPoint, i, d);
+			
+			if (isBlackGeneralized(nextPoint.xint(), nextPoint.yint()) && !(Point.isInArray(nextPoint, coordinate, d))) {
+				
+				// We create only a shallow copy, but since we never modify Point objects, it does not matter
+				ArrayList<Point> coor = new ArrayList<Point>(coordinate);
+				coordinate.add(nextPoint);
+				
+				if (coordinate.size() > bestCoordinate.size()) {
+					// We empty bestCoordinate and then re-fill it so it remains the same object
+					bestCoordinate.clear();
+					bestCoordinate.addAll(coordinate);
+					System.out.println(bestCoordinate);
+				}
+				
+				explorer(nextPoint, coordinate, bestCoordinate, d);
+				
+				coordinate = coor;
+			}
+		}
+	}
+	
+	
+	// Returns the CoordinateGraph corresponding to the input ArrayList<Point>
+	//public CoordinateGraph(ArrayList<Point> coordinates) {
+		
+	//}
 	
 	
 	// Draws a circle with center (a,b) and radius r
@@ -356,12 +439,40 @@ public class BinaryImage {
 	public static void main(String[] args) {
 		
 		BinaryImage im = new BinaryImage(800);
+		im.fillAreaBlack(200, 200, 400);
 		
-		im.drawHexagon(400, 400, 200, 10);
-		im.drawDiamond(400, 230, 30, 30);
+		ArrayList<Point> al = im.greatestPath(400, 400, 200);
+		System.out.println();
+		System.out.println(al);
+		
+		im.fillAreaWhite(205, 205, 390);
+		
+		int n = al.size();
+		for (int k = 0; k < n - 1; k ++) {
+			Point p1 = al.get(k);
+			Point p2 = al.get(k + 1);
+			im.drawLine(p1.xint(), p1.yint(), p2.xint(), p2.yint(), 5);
+		}
+		
+		for (int k = 0; k < n; k ++) {
+			Point p = al.get(k);
+			im.drawHexagon(p.xint(), p.yint(), 105, 5);
+		}
+		
+		//im.drawHexagon(400, 400, 200, 10);
+		//im.drawDiamond(400, 230, 30, 30);
 		//im.draw9(350, 330, 100, 140);
+		//im.drawInt(1234567890, 400, 400, 200, 200);
 		
-		im.drawInt(1234567890, 400, 400, 200, 200);
+		/*
+		im.drawHexagon(400, 400, 100, 10);
+		Point p = new Point(400, 400);
+		
+		for (int i = 1; i < 7; i ++) {
+			Point np = next(p, i, 175);
+			im.drawHexagon(np.xint(), np.yint(), 100, 10);
+		}
+		*/
 		
 		new ImageViewer(im, "Test");
 		
