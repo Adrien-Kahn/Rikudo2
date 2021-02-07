@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 import org.sat4j.core.VecInt;
 import org.sat4j.minisat.SolverFactory;
@@ -7,6 +8,7 @@ import org.sat4j.specs.ContradictionException;
 import org.sat4j.specs.ISolver;
 import org.sat4j.specs.TimeoutException;
 import org.sat4j.tools.SolutionCounter;
+
 
 public class Rikudo {
 	
@@ -315,66 +317,142 @@ public class Rikudo {
 	
 	
 	
-	public void isGood() {
+	public boolean isGood() {
 		
-		ISolver solver = solverBuilder();
+		int n = graph.vertexNumber();
+		long nbSol = numberOfSolution();
+		System.out.println("Number of Solutions: " + nbSol);
+			
+		if (nbSol == 1) {
+
+					
+			// Removing constraints on the partial mapping
+			// We iterate for 0 < k < n - 1 since we can't remove the constraints on the starting and finishing points 
+			for (int k = 1; k < n - 1; k ++) {
+				if (partialMap[k] != -1) {
+					int mem = partialMap[k];
+					partialMap[k] = -1;
+					if (numberOfSolution() == 1) {
+						System.out.println("The problem is not minimal: removing condition " + k + " on the partial mapping still yields only one solution");
+						partialMap[k] = mem;
+						return(false);				// a lambda condition can be removed
+					}
+					partialMap[k] = mem;
+				}
+			}
+					
+			// Removing constraints on diamonds
+			for (int u = 0; u < n; u ++) {
+				for (int v : new ArrayList<>(diamonds.get(u))) {
+					if (v > u) {
+						diamonds.get(u).remove((Object)v);
+						diamonds.get(v).remove((Object)u);
+						if (numberOfSolution() == 1) {
+							System.out.println("The problem is not minimal: removing the diamond (" + u + ", " + v + ") still yields only one solution");
+							diamonds.get(u).add(v);
+							diamonds.get(v).add(u);
+								return(false);  		// a diamond condition can be removed
+						}
+						diamonds.get(u).add(v);
+						diamonds.get(v).add(u);
+					}
+				}
+			}
+					
+			System.out.println("The Problem is minimal");
+			return(true);			//the problem is minimal
+			
+		}
+		return(false);   			// there are more than one solution or no solutions
+				
+	}
+	
+	
+	// Task 5
+	
+	private void makesGood() { // removes unnecessary conditions to a rikudo with a unique solution	: it functions similarily to isGood with a few differences
 		int n = graph.vertexNumber();
 		
-		try {
+		for (int k = 1; k < n - 1; k ++) {
 			
-			if (solver.isSatisfiable()) {
-				
-				// Providing the number of solution
-				SolutionCounter sc = new SolutionCounter(solver);
-				long nbSol = sc.countSolutions();
-				System.out.println("Number of Solutions: " + nbSol);
-				
-				// If there is only one solution, we check that removing constraints always leads to more solutions (we check minimality)
-				if (nbSol == 1) {
-					
-					// Removing constraints on the partial mapping
-					// We iterate for 0 < k < n - 1 since we can't remove the constraints on the starting and finishing points 
-					for (int k = 1; k < n - 1; k ++) {
-						if (partialMap[k] != -1) {
-							int mem = partialMap[k];
-							partialMap[k] = -1;
-							if (numberOfSolution() == 1) {
-								System.out.println("The problem is not minimal: removing condition " + k + " on the partial mapping still yields only one solution");
-								partialMap[k] = mem;
-								return;
-							}
-							partialMap[k] = mem;
-						}
-					}
-					
-					// Removing constraints on diamonds
-					for (int u = 0; u < n; u ++) {
-						for (int v : diamonds.get(u)) {
-							if (v > u) {
-								diamonds.get(u).remove(new Integer(v));
-								if (numberOfSolution() == 1) {
-									System.out.println("The problem is not minimal: removing the diamond (" + u + ", " + v + ") still yields only one solution");
-									diamonds.get(u).add(v);
-									return;
-								}
-								diamonds.get(u).add(v);
-							}
-						}
-					}
-					
-					System.out.println("The Problem is minimal");
-					
-					
+			if (partialMap[k] != -1) {
+				int mem = partialMap[k];
+				partialMap[k] = -1;
+				if (numberOfSolution() != 1) {
+					partialMap[k] = mem;
 				}
+			}
+		}
 				
-			} else {
-				System.out.println("Number of Solutions: 0");
+		// Removing constraints on diamonds
+		for (int u = 0; u < n; u ++) {
+			for (int v : new ArrayList<>(diamonds.get(u))) {
+				if (v > u) {
+					diamonds.get(u).remove((Object) v);
+					diamonds.get(v).remove((Object)u);
+					if (numberOfSolution() != 1) {
+						diamonds.get(u).add(v);
+						diamonds.get(v).add(u);
+					}
+
+				}
+			}
+		}
+	}
+	
+	
+	public static Rikudo createRikudo (Graph g, int s, int t) {
+		// Definition of the variables
+		ArrayList<Integer> path = g.hamiltonianBacktracking(s, t);
+		int n = g.vertexNumber();
+		int[] lambda = new int[n];
+		lambda[0] = s;
+		lambda[n-1] = t;
+		ArrayList<ArrayList<Integer>> diamonds = new ArrayList<ArrayList<Integer>>();
+		for (int i = 0; i < n; i++) {
+			lambda[i] = -1;
+			diamonds.add(new ArrayList<Integer>());	
+		}
+		lambda[0] = s;
+		lambda[n-1] = t;
+		Rikudo riku = new Rikudo(g, diamonds, lambda);
+		
+		// Putting constraints until our path is the unique solution
+		Random r = new Random();
+		
+		long nbSol = riku.numberOfSolution();
+
+		while (nbSol != 1) {
+			if (r.nextInt(2) == 0) {      // we add a lambda constraint
+				int i = r.nextInt(n);
+				if (riku.partialMap[i] == -1) {
+					riku.partialMap[i] = path.get(i);
+					nbSol = riku.numberOfSolution();
+				}
+			}
+			else {						// we add a diamond constraint
+				int i = r.nextInt(n-1);
+				int v1 = path.get(i);
+				int v2 = path.get(i+1);
+				if (!riku.diamonds.get(v1).contains(v2)) {
+					riku.diamonds.get(v1).add(v2);
+					riku.diamonds.get(v2).add(v1);
+					nbSol = riku.numberOfSolution();
+				}
 			}
 			
-		} catch (TimeoutException e) {
-			System.out.println("Timeout, sorry!");
 		}
 		
+		
+		// Removing solutions until the information is minimal
+		
+		riku.makesGood();
+		
+		
+		// returning a minimal rikudo puzzle
+		return(riku);
+		
+		//
 	}
 	
 	
@@ -384,6 +462,7 @@ public class Rikudo {
 	
 	public static void main(String[] args) {
 		
+		/*
 		Graph g = Graph.gridGraph(3);
 		int[] pm = new int[] {0, 3, -1, -1, -1, -1, -1, -1, 8};
 		
@@ -408,7 +487,7 @@ public class Rikudo {
 		riku.isGood();
 		
 		Graph gg2 = Graph.gridGraph(3);
-		
+				
 		ArrayList<ArrayList<Integer>> E = new ArrayList<ArrayList<Integer>>();
 		ArrayList<Integer> diamond1 = new ArrayList<Integer>();
 		ArrayList<Integer> diamond2 = new ArrayList<Integer>();
@@ -430,6 +509,19 @@ public class Rikudo {
 		Rikudo riku2 = new Rikudo(gg2, E, lambda);
 		
 		riku2.solveBacktracking(0, 8);
+		*/
+		
+		Graph gg2 = Graph.gridGraph(3);
+		
+		Rikudo riku = createRikudo(gg2, 0, 8);
+		
+		System.out.print("Partial Mapping: ");
+		System.out.println(Arrays.toString(riku.partialMap));
+		System.out.print("Diamonds: ");
+		System.out.println(riku.diamonds);
+		
+		
+
 		
 	}
 
